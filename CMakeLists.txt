@@ -9,6 +9,7 @@ if(DISABLE_FoX)
 endif()
 if(CPRGNU)
   add_definitions(-DCPRGNU)
+  #set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -g")
 endif()
 
 if (DEFINED CIMEROOT)

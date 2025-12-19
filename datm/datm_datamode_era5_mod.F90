@@ -16,7 +16,6 @@ module datm_datamode_era5_mod
   public  :: datm_datamode_era5_advertise
   public  :: datm_datamode_era5_init_pointers
   public  :: datm_datamode_era5_advance
-  private :: datm_eSat  ! determine saturation vapor pressure
 
   ! export state data
   real(r8), pointer :: Sa_z(:)              => null()
@@ -44,14 +43,11 @@ module datm_datamode_era5_mod
   real(r8), pointer :: Faxa_lat(:)          => null()
   real(r8), pointer :: Faxa_taux(:)         => null()
   real(r8), pointer :: Faxa_tauy(:)         => null()
-!
-!  real(r8), pointer :: Faxa_ndep(:,:)       => null()
 
   ! stream data
-  real(r8), pointer :: strm_tdew(:)         => null()
+  real(r8), pointer :: strm_t2m(:)          => null()
 
   real(r8) :: t2max  ! units detector
-  real(r8) :: td2max ! units detector
 
   real(r8) , parameter :: tKFrz    = SHR_CONST_TKFRZ
   real(r8) , parameter :: rdair    = SHR_CONST_RDAIR ! dry air gas constant ~ J/K/kg
@@ -132,7 +128,7 @@ contains
     rc = ESMF_SUCCESS
 
     ! initialize pointers for module level stream arrays
-    call shr_strdata_get_stream_pointer( sdat, 'Sa_tdew'   , strm_tdew , rc)
+    call shr_strdata_get_stream_pointer( sdat, 'Sa_t2m' , strm_t2m , rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! get export state pointers
@@ -209,16 +205,16 @@ contains
     integer  :: lsize               ! size of attr vect
     real(r8) :: rtmp(2)
     real(r8) :: t2, pslv
-    real(r8) :: e, qsat
     type(ESMF_VM) :: vm
     character(len=*), parameter :: subname='(datm_datamode_era5_advance): '
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
 
-    lsize = size(strm_tdew)
+    lsize = size(strm_t2m)
     if (first_time) then
        call ESMF_VMGetCurrent(vm, rc=rc)
+
        ! determine t2max (see below for use)
        if (associated(Sa_t2m)) then
          rtmp(1) = maxval(Sa_t2m(:))
@@ -227,13 +223,6 @@ contains
          t2max = rtmp(2)
          if (mainproc) write(logunit,*) trim(subname),' t2max = ',t2max
        end if
-
-       ! determine tdewmax (see below for use)
-       rtmp(1) = maxval(strm_tdew(:))
-       call ESMF_VMAllReduce(vm, rtmp, rtmp(2:), 1, ESMF_REDUCE_MAX, rc=rc)
-       td2max = rtmp(2)
-
-       if (mainproc) write(logunit,*) trim(subname),' td2max = ',td2max
 
        ! reset first_time
        first_time = .false.
@@ -248,16 +237,6 @@ contains
        !--- calculate wind speed ---
        if (associated(Sa_wspd10m)) then
          Sa_wspd10m(n) = sqrt(Sa_u10m(n)*Sa_u10m(n)+Sa_v10m(n)*Sa_v10m(n))
-       end if
-
-       !--- specific humidity at 2m ---
-       if (associated(Sa_t2m) .and. associated(Sa_pslv) .and. associated(Sa_q2m)) then
-         t2 = Sa_t2m(n)
-         pslv = Sa_pslv(n)
-         if (td2max < 50.0_r8) strm_tdew(n) = strm_tdew(n) + tkFrz
-         e = datm_eSat(strm_tdew(n), t2)
-         qsat = (0.622_r8 * e)/(pslv - 0.378_r8 * e)
-         Sa_q2m(n) = qsat
        end if
     end do
 
@@ -311,49 +290,5 @@ contains
     if (associated(Faxa_tauy))  Faxa_tauy(:)  = Faxa_tauy(:)/3600.0_r8
 
   end subroutine datm_datamode_era5_advance
-
-  !===============================================================================  
-  real(r8) function datm_eSat(tK,tKbot)
-
-    !----------------------------------------------------------------------------
-    ! use polynomials to calculate saturation vapor pressure and derivative with
-    ! respect to temperature: over water when t > 0 c and over ice when t <= 0 c
-    ! required to convert relative humidity to specific humidity
-    !----------------------------------------------------------------------------
-
-    ! input/output variables
-    real(r8),intent(in) :: tK    ! temp used in polynomial calculation
-    real(r8),intent(in) :: tKbot ! bottom atm temp
-
-    ! local variables
-    real(r8)           :: t     ! tK converted to Celcius
-    real(r8),parameter :: tkFrz = shr_const_tkfrz  ! freezing T of fresh water ~ K
-
-    !--- coefficients for esat over water ---
-    real(r8),parameter :: a0=6.107799961_r8
-    real(r8),parameter :: a1=4.436518521e-01_r8
-    real(r8),parameter :: a2=1.428945805e-02_r8
-    real(r8),parameter :: a3=2.650648471e-04_r8
-    real(r8),parameter :: a4=3.031240396e-06_r8
-    real(r8),parameter :: a5=2.034080948e-08_r8
-    real(r8),parameter :: a6=6.136820929e-11_r8
-
-    !--- coefficients for esat over ice ---
-    real(r8),parameter :: b0=6.109177956_r8
-    real(r8),parameter :: b1=5.034698970e-01_r8
-    real(r8),parameter :: b2=1.886013408e-02_r8
-    real(r8),parameter :: b3=4.176223716e-04_r8
-    real(r8),parameter :: b4=5.824720280e-06_r8
-    real(r8),parameter :: b5=4.838803174e-08_r8
-    real(r8),parameter :: b6=1.838826904e-10_r8
-
-    t = min( 50.0_r8, max(-50.0_r8,(tK-tKfrz)) )
-    if ( tKbot < tKfrz) then
-       datm_eSat = 100.0_r8*(b0+t*(b1+t*(b2+t*(b3+t*(b4+t*(b5+t*b6))))))
-    else
-       datm_eSat = 100.0_r8*(a0+t*(a1+t*(a2+t*(a3+t*(a4+t*(a5+t*a6))))))
-    end if
-
-  end function datm_eSat
 
 end module datm_datamode_era5_mod
