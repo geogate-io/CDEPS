@@ -21,14 +21,20 @@ module datm_datamode_era5_mod
   real(r8), pointer :: Sa_z(:)              => null()
   real(r8), pointer :: Sa_u10m(:)           => null()
   real(r8), pointer :: Sa_v10m(:)           => null()
+  real(r8), pointer :: Sa_u(:)              => null()
+  real(r8), pointer :: Sa_v(:)              => null()
   real(r8), pointer :: Sa_wspd10m(:)        => null()
   real(r8), pointer :: Sa_t2m(:)            => null()
+  real(r8), pointer :: Sa_tbot(:)           => null()
   real(r8), pointer :: Sa_tskn(:)           => null()
   real(r8), pointer :: Sa_q2m(:)            => null()
+  real(r8), pointer :: Sa_shum(:)           => null()
   real(r8), pointer :: Sa_pslv(:)           => null()
+  real(r8), pointer :: Sa_pbot(:)           => null()
   real(r8), pointer :: Faxa_rain(:)         => null()
   real(r8), pointer :: Faxa_rainc(:)        => null()
   real(r8), pointer :: Faxa_rainl(:)        => null()
+  real(r8), pointer :: Faxa_snow(:)         => null()
   real(r8), pointer :: Faxa_snowc(:)        => null()
   real(r8), pointer :: Faxa_snowl(:)        => null()
   real(r8), pointer :: Faxa_swndr(:)        => null()
@@ -80,14 +86,20 @@ contains
     call dshr_fldList_add(fldsExport, 'Sa_z'       )
     call dshr_fldList_add(fldsExport, 'Sa_u10m'    )
     call dshr_fldList_add(fldsExport, 'Sa_v10m'    )
+    call dshr_fldList_add(fldsExport, 'Sa_u'       )
+    call dshr_fldList_add(fldsExport, 'Sa_v'       )
     call dshr_fldList_add(fldsExport, 'Sa_wspd10m' )
     call dshr_fldList_add(fldsExport, 'Sa_t2m'     )
+    call dshr_fldList_add(fldsExport, 'Sa_tbot'    )
     call dshr_fldList_add(fldsExport, 'Sa_tskn'    )
     call dshr_fldList_add(fldsExport, 'Sa_q2m'     )
+    call dshr_fldList_add(fldsExport, 'Sa_shum'    )
     call dshr_fldList_add(fldsExport, 'Sa_pslv'    )
+    call dshr_fldList_add(fldsExport, 'Sa_pbot'    )
     call dshr_fldList_add(fldsExport, 'Faxa_rain'  )
     call dshr_fldList_add(fldsExport, 'Faxa_rainc' )
     call dshr_fldList_add(fldsExport, 'Faxa_rainl' )
+    call dshr_fldList_add(fldsExport, 'Faxa_snow'  )
     call dshr_fldList_add(fldsExport, 'Faxa_snowc' )
     call dshr_fldList_add(fldsExport, 'Faxa_snowl' )
     call dshr_fldList_add(fldsExport, 'Faxa_swndr' )
@@ -138,21 +150,33 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Sa_v10m'    , fldptr1=Sa_v10m    , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call dshr_state_getfldptr(exportState, 'Sa_u'       , fldptr1=Sa_u       , allowNullReturn=.true., rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call dshr_state_getfldptr(exportState, 'Sa_v'       , fldptr1=Sa_v       , allowNullReturn=.true., rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Sa_wspd10m' , fldptr1=Sa_wspd10m , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Sa_t2m'     , fldptr1=Sa_t2m     , allowNullReturn=.true., rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call dshr_state_getfldptr(exportState, 'Sa_tbot'    , fldptr1=Sa_tbot    , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Sa_tskn'    , fldptr1=Sa_tskn    , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Sa_q2m'     , fldptr1=Sa_q2m     , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call dshr_state_getfldptr(exportState, 'Sa_shum'    , fldptr1=Sa_shum    , allowNullReturn=.true., rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Sa_pslv'    , fldptr1=Sa_pslv    , allowNullReturn=.true., rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call dshr_state_getfldptr(exportState, 'Sa_pbot'    , fldptr1=Sa_pbot    , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Faxa_rain'  , fldptr1=Faxa_rain  , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Faxa_rainc' , fldptr1=Faxa_rainc , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Faxa_rainl' , fldptr1=Faxa_rainl , allowNullReturn=.true., rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call dshr_state_getfldptr(exportState, 'Faxa_snow'  , fldptr1=Faxa_snow  , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Faxa_snowc' , fldptr1=Faxa_snowc , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -238,29 +262,13 @@ contains
        if (associated(Sa_wspd10m)) then
          Sa_wspd10m(n) = sqrt(Sa_u10m(n)*Sa_u10m(n)+Sa_v10m(n)*Sa_v10m(n))
        end if
+
+       !--- fabricate required swdn components from net swdn ---
+       Faxa_swvdr(n) = Faxa_swdn(n)*(0.28_R8)
+       Faxa_swndr(n) = Faxa_swdn(n)*(0.31_R8)
+       Faxa_swvdf(n) = Faxa_swdn(n)*(0.24_R8)
+       Faxa_swndf(n) = Faxa_swdn(n)*(0.17_R8)
     end do
-
-    !----------------------------------------------------------
-    ! shortwave bands
-    !----------------------------------------------------------
-
-    !--- shortwave radiation (Faxa_* basically holds albedo) ---
-    !--- see comments for Faxa_swnet
-    if (associated(Faxa_swvdr)) Faxa_swvdr(:) = Faxa_swdn(:)*Faxa_swvdr(:)
-    if (associated(Faxa_swndr)) Faxa_swndr(:) = Faxa_swdn(:)*Faxa_swndr(:)
-    if (associated(Faxa_swvdf)) Faxa_swvdf(:) = Faxa_swdn(:)*Faxa_swvdf(:)
-    if (associated(Faxa_swndf)) Faxa_swndf(:) = Faxa_swdn(:)*Faxa_swndf(:)
-
-    !--- TODO: need to understand relationship between shortwave bands and
-    !--- net shortwave rad. currently it is provided directly from ERA5
-    !--- and the total of the bands are not consistent with the swnet
-    !--- swnet: a diagnostic quantity ---
-    !if (associated(Faxa_swnet)) then
-    !  if (associated(Faxa_swndr) .and. associated(Faxa_swvdr) .and. &
-    !      associated(Faxa_swndf) .and. associated(Faxa_swvdf)) then
-    !    Faxa_swnet(:) = Faxa_swndr(:) + Faxa_swvdr(:) + Faxa_swndf(:) + Faxa_swvdf(:)
-    !  end if
-    !end if
 
     !----------------------------------------------------------
     ! unit conversions (temporal resolution is hourly)
@@ -282,6 +290,7 @@ contains
     if (associated(Faxa_rain))  Faxa_rain(:)  = Faxa_rain(:)/3600.0_r8*rhofw
     if (associated(Faxa_rainc)) Faxa_rainc(:) = Faxa_rainc(:)/3600.0_r8*rhofw
     if (associated(Faxa_rainl)) Faxa_rainl(:) = Faxa_rainl(:)/3600.0_r8*rhofw
+    if (associated(Faxa_snow))  Faxa_snow(:)  = Faxa_snow(:)/3600.0_r8*rhofw
     if (associated(Faxa_snowc)) Faxa_snowc(:) = Faxa_snowc(:)/3600.0_r8*rhofw
     if (associated(Faxa_snowl)) Faxa_snowl(:) = Faxa_snowl(:)/3600.0_r8*rhofw
 
